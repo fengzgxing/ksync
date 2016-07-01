@@ -1,0 +1,331 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>离线数据同步</title>
+<style type="text/css">
+body {
+	font-size: 11pt;
+}
+
+table.gridtable {
+	width: 80%;
+	font-family: verdana, arial, sans-serif;
+	font-size: 11px;
+	color: #333333;
+	border-width: 1px;
+	border-color: #666666;
+	border-collapse: collapse;
+	margin:0px auto;
+}
+
+table.gridtable th {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #666666;
+	background-color: #dedede;
+}
+
+table.gridtable td {
+	border-width: 1px;
+	padding: 8px;
+	border-style: solid;
+	border-color: #666666;
+	background-color: #ffffff;
+}
+
+form {
+	border: 1px solid #ccc;
+	width: 520px;
+	padding: 10px;
+	margin: auto;
+	line-height: 30px;
+}
+
+form input[type=text] {
+	width: 500px;
+	height: 34px;
+	padding-left: 8px;
+}
+</style>
+</head>
+<body>
+<pre> 
+<table class="gridtable">
+	<tr><td colspan="4" style="text-align:center;"><h1>数据增量离线同步</h1></td></tr>
+	<tr><td colspan="4"><h3>同步方案</h3></td></tr>
+	<tr>
+		<td colspan="4" style="line-height:24px;">
+约定:
+1、服务器端数据库表新增 最近修改时间(timestamp) 字段,默认值：CURRENT_TIMESTAMP
+<br/>
+ALTER TABLE tbl_xxx ADD COLUMN lastModifyTime TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP 
+ 
+		</td>
+	</tr>
+	<tr><td colspan="4"><h3>数据同步API</h3></td></tr>
+	<tr>
+				<td colspan="4"><b>访问地址：<%=ApiPath%><b></b></td>
+			</tr>
+	<tr>
+				<td colspan="4">1、获取数据库表结构信息</td>
+			</tr>
+	<tr>
+				<td colspan="4">请求URL: <a href="<%=ApiPath%>?appid=<%=AppID%>&cmd=struct" target="_blank"> <%=ApiPath%>?appid=<%=AppID%>&cmd=struct</a>  (GET) </td>
+			</tr>
+	<tr>
+		<th>参数名称</th>
+		<th>必填</th>
+		<th>类型</th>
+		<th>说明</th>
+	</tr>
+	<tr>
+		<td>appid</td>
+		<td>是</td>
+		<td>String</td>
+		<td>同步应用ID,管理员指定,唯一</td>
+	</tr>
+	<tr>
+				<td colspan="4">返回数据：</td>
+			</tr>
+	<tr>
+				<td colspan="4">
+		{
+		   'status':'200',
+		   'type':'struct',
+		   'data':
+		   {
+		      'bdz':
+		      [
+		         {
+		            'column_name':'dept_id',
+		            'is_nullable':'YES',
+		            'data_type':'int',
+		            'column_key':'',
+		            'column_comment':'所属单位'
+		         }
+		      ]
+		   }
+		}
+		</td>
+	</tr>
+	
+	<tr>
+				<td colspan="4">2、获取数据库表数据</td>
+			</tr>
+	<tr>
+				<td colspan="4">请求URL: <a href="<%=ApiPath%>?appid=<%=AppID%>&cmd=down_data&tbl=line&lst=0&pageNum=1" target="_blank"><%=ApiPath%>?appid=<%=AppID%>&cmd=down_data&tbl=line&lst=0&pageNum=1 </a>(GET) </td>
+			</tr>
+	<tr>
+		<th>参数名称</th>
+		<th>必填</th>
+		<th>类型</th>
+		<th>说明</th>
+	</tr>
+	<tr>
+		<td>appid</td>
+		<td>是</td>
+		<td>String</td>
+		<td>同步应用ID,管理员指定,唯一</td>
+	</tr>
+	<tr>
+		<td>cmd</td>
+		<td>是</td>
+		<td>String</td>
+		<td>指令(down_data)</td>
+	</tr>
+	<tr>
+		<td>tbl</td>
+		<td>是</td>
+		<td>String</td>
+		<td>要同步的数据库表名</td>
+	</tr>
+	<tr>
+		<td>lst</td>
+		<td>是</td>
+		<td>String</td>
+		<td>客户端该表最后一次同步时间(yyyyMMddHHmmss)</td>
+	</tr>
+	<tr>
+		<td>pageNum</td>
+		<td>是</td>
+		<td>Integer</td>
+		<td>页码,客户端分页获取服务器端数据(默认为1)</td>
+	</tr>
+	<tr>
+				<td colspan="4">返回数据：</td>
+			</tr>
+	<tr>
+				<td colspan="4">
+{
+   'status':'200',
+   'type':'down_data',
+   'table':'bz_user',
+   'data':
+   [
+      {
+         'name':'超级管理员',
+         'tel':''
+      },
+      {
+         'name':'唐勇',
+         'tel':'13012890934'
+      },
+      {
+         'name':'蔡安勇',
+         'tel':'13209890912'
+      }
+
+   ],
+   'hasData':false,
+   'dataSize':7
+}
+		</td>
+	</tr>
+	
+	<tr> <td colspan="4">3、获取客户端缺少的文件</td> </tr>
+	<tr> <td colspan="4">请求URL: <%=ApiPath%>?appid=<%=AppID%>&cmd=compare&folder={folder}&files={files}&direction={direction}  (GET) </td> </tr>
+	<tr>
+		<th>参数名称</th>
+		<th>必填</th>
+		<th>类型</th>
+		<th>说明</th>
+	</tr>
+	<tr>
+		<td>folder</td>
+		<td>是</td>
+		<td>String</td>
+		<td>要同步的子文件夹名称</td>
+	</tr>
+	<tr>
+		<td>files</td>
+		<td>是</td>
+		<td>String</td>
+		<td>客户端此folder中现存文件名称(多个文件名用,分割)</td>
+	</tr>
+	
+	<tr>
+		<td>direction</td>
+		<td>是</td>
+		<td>String</td>
+		<td>取值：down(下载时对比PAD端缺少文件) 或者 up(上传时对比服务器端缺少文件)</td>
+	</tr>
+	
+	<tr>
+		<td>cmd</td>
+		<td>是</td>
+		<td>String</td>
+		<td>指令，固定值compare </td>
+	</tr>
+	<tr> <td colspan="4">返回数据：</td> </tr>
+	<tr>
+		<td colspan="4">
+{
+   'status':'200',
+   'data':
+   [
+      'MockingBot.zip',
+      'KMS10.exe'
+   ]
+}
+		</td>
+	</tr>
+	
+	<tr> <td colspan="4">4、下载文件</td> </tr>
+	<tr> <td colspan="4">请求URL(GET): <%=ApiPath%>?appid=<%=AppID%>&cmd=down_file&folder={folder}&filename={filename}  </td> </tr>
+	<tr>
+		<th>参数名称</th>
+		<th>必填</th>
+		<th>类型</th>
+		<th>说明</th>
+	</tr>
+	<tr>
+		<td>folder</td>
+		<td>是</td>
+		<td>String</td>
+		<td>要同步的文件夹名称</td>
+	</tr>
+	<tr>
+		<td>filename</td>
+		<td>是</td>
+		<td>String</td>
+		<td>同步文件名称</td>
+	</tr>
+	 
+	
+	<tr>
+		<td>cmd</td>
+		<td>是</td>
+		<td>String</td>
+		<td>指令，固定值down_file </td>
+	</tr>
+	<tr> <td colspan="4">返回数据：文件流</td> </tr>
+	
+	
+	<tr> <td colspan="4">5、数据上传</td> </tr>
+	<tr> <td colspan="4">请求URL(GET): <%=ApiPath%>?appid=<%=AppID%>&cmd=upload_data&folder={folder}&filename={filename}  </td> </tr>
+	<tr>
+		<th>参数名称</th>
+		<th>必填</th>
+		<th>类型</th>
+		<th>说明</th>
+	</tr>
+	<tr>
+		<td>body数据</td>
+		<td>是</td>
+		<td>String</td>
+		<td>将要上传的数据(JSON)同步request的body体上传</td>
+	</tr>
+	<tr>
+		<td>cmd</td>
+		<td>是</td>
+		<td>String</td>
+		<td>指令，固定值upload_data </td>
+	</tr>
+	<tr> <td colspan="4">返回数据：</td> </tr>
+	<tr>
+		<td colspan="4">
+{
+   'status':'200',
+   'data':'上传成功'
+}
+		</td>
+	</tr>
+	
+	<tr> <td colspan="4">6、文件上传</td> </tr>
+	<tr> <td colspan="4">请求URL(POST): <%=ApiPath%>?appid=<%=AppID%>&cmd=upload_file&folder={folder}</td> </tr>
+	<tr>
+		<th>参数名称</th>
+		<th>必填</th>
+		<th>类型</th>
+		<th>说明</th>
+	</tr>
+	<tr>
+		<td>body数据</td>
+		<td>是</td>
+		<td>String</td>
+		<td>将要上传的文件放入body体上传</td>
+	</tr>
+	<tr>
+		<td>cmd</td>
+		<td>是</td>
+		<td>String</td>
+		<td>指令，固定值upload_file </td>
+	</tr>
+	<tr> <td colspan="4">返回数据：</td> </tr>
+	<tr>
+		<td colspan="4">
+{
+   'status':'200',
+   'data':'上传成功'
+}
+		</td>
+	</tr>
+	
+</table> 
+
+</pre>
+
+</body>
+</html>
