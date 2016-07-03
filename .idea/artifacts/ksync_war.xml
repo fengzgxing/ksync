@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="ksync:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <root id="archive" name="sync.war">
+      <element id="artifact" artifact-name="ksync:war exploded" />
+    </root>
+  </artifact>
+</component>

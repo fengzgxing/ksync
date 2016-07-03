@@ -15,12 +15,12 @@
       <servlet-class>com.cnksi.sync.web.AdminServlet</servlet-class>
       <init-param>
           <param-name>api-url</param-name>
-          <param-value>/ksync/api</param-value>
+          <param-value>/api/v1</param-value>
       </init-param>
   </servlet>
   <servlet-mapping>
       <servlet-name>ksync-config</servlet-name>
-      <url-pattern>/ksync/config</url-pattern>
+      <url-pattern>/config</url-pattern>
   </servlet-mapping>
   <servlet>
       <servlet-name>ksync-api</servlet-name>
@@ -28,7 +28,7 @@
   </servlet>
   <servlet-mapping>
       <servlet-name>ksync-api</servlet-name>
-      <url-pattern>/ksync/api</url-pattern>
+      <url-pattern>/api/v1</url-pattern>
   </servlet-mapping> 
   
 </web-app>

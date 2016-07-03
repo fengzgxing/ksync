@@ -13,10 +13,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.MultipartConfig;
@@ -51,7 +48,7 @@ import com.cnksi.util.JsonFormatTool;
 public class ApiV1Servlet extends HttpServlet {
 
 	private SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
-	private SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
 
 	private static final long serialVersionUID = 1L;
 
@@ -163,6 +160,9 @@ public class ApiV1Servlet extends HttpServlet {
 		String tableName = request.getParameter("tbl");
 		String pageNum = request.getParameter("pageNum");
 		String lst = request.getParameter("lst");
+
+
+
 		logger.log(Level.INFO, String.format("downData , tbl = %s , pageNum = %s, lst=%s", tableName, pageNum, lst));
 		try {
 			int page = 1;
@@ -176,14 +176,8 @@ public class ApiV1Servlet extends HttpServlet {
 			}
 
 			String where = null;
-			List<Map<String, Object>> data = null;
-			if (lst != null && lst.length() == 14) {
-				lst = sdf2.format(sdf.parse(lst));
-				where = config.getLstModifyField() + " > ? ";
-				data = sync.getTableData(tableName, where, page, lst);
-			} else {
-				data = sync.getTableData(tableName, where, page);
-			}
+			List<Map<String, Object>> data =  sync.getTableData(tableName, page,getParameterMap(request));
+
 
 			resultMap.put("status", "200");
 			resultMap.put("type", "down_data");
@@ -461,5 +455,35 @@ public class ApiV1Servlet extends HttpServlet {
 			}
 		}
 		return content;
+	}
+
+
+	private Map<String,Object> getParameterMap(HttpServletRequest request) {
+		// 参数Map
+		Map properties = request.getParameterMap();
+		// 返回值Map
+		Map returnMap = new HashMap();
+		Iterator entries = properties.entrySet().iterator();
+		Map.Entry entry;
+		String name = "";
+		String value = "";
+		while (entries.hasNext()) {
+			entry = (Map.Entry) entries.next();
+			name = (String) entry.getKey();
+			Object valueObj = entry.getValue();
+			if(null == valueObj){
+				value = "";
+			}else if(valueObj instanceof String[]){
+				String[] values = (String[])valueObj;
+				for(int i=0;i<values.length;i++){
+					value = values[i] + ",";
+				}
+				value = value.substring(0, value.length()-1);
+			}else{
+				value = valueObj.toString();
+			}
+			returnMap.put(name, value);
+		}
+		return returnMap;
 	}
 }

@@ -2,13 +2,13 @@ package com.cnksi.sync;
 
 import java.io.File;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.alibaba.fastjson.serializer.ObjectArrayCodec;
 import org.apache.log4j.Logger;
 
 import com.alibaba.fastjson.JSON;
@@ -18,6 +18,9 @@ import com.cnksi.sync.dao.KSyncMysqlDao;
 public class KSync {
 
 	private static Logger logger = Logger.getLogger(KSync.class);
+
+	SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
 
 	KSyncMysqlDao dao = null;
 
@@ -31,8 +34,7 @@ public class KSync {
 	/**
 	 * 给所有表添加字段
 	 * 
-	 * @return
-	 * @throws SQLException
+	 * @return String
 	 */
 	public String init() {
 
@@ -72,20 +74,55 @@ public class KSync {
 		return dao.struct(config);
 	}
 
-	public List<Map<String, Object>> getTableData(String tableName, String where, int pageNum, String... values) throws Exception {
+	public List<Map<String, Object>> getTableData(String tableName, int pageNum,Map<String,Object> params) throws Exception {
+		Vector<Object>  values = new Vector<Object>();
+		String where = "1 = 1 ";
 
 		if (config.getSyncTables().isEmpty() || config.getSyncTables().containsKey(tableName)) {
 
+			// deptid={deptid} and enabled=0 and userid={userid}
 			String bwhere = config.getSyncCondition().get(tableName);
 
-			if (where == null || where.length() < 1) {
-				where = " 1 = 1 ";
-			}
 
 			if (bwhere != null && bwhere.length() > 0) {
-				where += " and " + config.getSyncCondition().get(tableName);
+				Pattern p = Pattern.compile("#(.+?)#");
+
+				String[] _params = bwhere.split("and");
+				for(String param : _params){
+					boolean hasDiyn = false;
+
+					Matcher m = p.matcher(param);
+
+					while(m.find()) {
+						String g0 = m.group(0);
+
+						logger.info(g0);
+						//where += " and " + param.replaceFirst(g0, "?");
+						param = m.replaceFirst("?");
+						m = p.matcher(param);
+						String key = g0.replace("#", "");
+						if (params.get(key) == null || params.get(key).toString().length() == 0) {
+							logger.error("动态参数 " + key + " 不存在,请确认");
+							throw new Exception("动态参数 " + key + " 不存在,请确认");
+						}
+						values.add(params.get(key));
+
+					}
+
+						where += " and "+ param;
+
+
+				}
+				//where += " and " + config.getSyncCondition().get(tableName);
 			}
 
+			//添加更新时间
+			if(params.containsKey("lst") && params.get("lst").toString().length()==14) {
+				String lst = sdf2.format(sdf.parse(params.get("lst").toString()));
+				where +=" and " + config.getLstModifyField() + ">?";
+				values.add(lst);
+			}
+			//处理查询列信息
 			String columns = "*";
 			if (config.getSyncTables().containsKey(tableName)) {
 				columns = config.getSyncTables().get(tableName);
@@ -94,7 +131,7 @@ public class KSync {
 
 			logger.info(sql);
 
-			return dao.query(sql, values);
+			return dao.query(sql, values.toArray());
 		} else {
 			logger.error("服务器端不存在此表(" + tableName + ")或不允许下载");
 			throw new Exception("服务器端不存在此表或不允许下载");
@@ -104,7 +141,7 @@ public class KSync {
 	/**
 	 * 数据上传
 	 * 
-	 * @param uploadDataStr
+	 * @param uploadDataStr 上传的json格式数据
 	 * 
 	 */
 	@SuppressWarnings("unchecked")
@@ -144,10 +181,7 @@ public class KSync {
 
 	/**
 	 * 生成insert/replace语句
-	 * 
-	 * @param tableName
-	 * @param dataList
-	 * @return
+	 *
 	 */
 	private void genInsertSqlForMap(String tableName, Map<String, Object> data, Map<String, List<Object[]>> tableSqls) {
 		if (data == null || data.isEmpty())
@@ -196,9 +230,6 @@ public class KSync {
 	 * 
 	 * @param folder
 	 *            下载文件夹
-	 * @param resultMap
-	 * @param fileNames
-	 *            过滤文件名
 	 * @date 2016-3-20
 	 */
 	public List<String> getDownloadFile(String folder, String files, String direction) throws Exception {
@@ -278,10 +309,10 @@ public class KSync {
 
 			String where = config.getLstModifyField() + ">0";
 
-			List<Map<String, Object>> datas = sync.getTableData(tableName, where, page);
+			List<Map<String, Object>> datas = sync.getTableData(tableName, page,null);
 			while (datas.size() == config.getPageSize()) {
 				page++;
-				datas = sync.getTableData(tableName, where, page);
+				datas = sync.getTableData(tableName, page,null);
 			}
 		}
 	}
